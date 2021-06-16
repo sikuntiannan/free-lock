@@ -6,54 +6,80 @@ using namespace swd;
 
 std::vector<S_Lock> lock_array;
 
-std::atomic<int> thread_number = 100;
+std::atomic<int> thread_number = 30;
+
+thread_local int Stacknumber = 0;
 
 void sun ()
 {
-	std::srand (std::time (nullptr));
-	int v = std::rand ();
-	if (v & 0x00001)
+	Stacknumber++;
+	try
 	{
-		int n = v % 100;
-		Lock_Guard te_l (lock_array[n]);
+		std::srand (std::time (nullptr));
+		int v = std::rand ();
+		if (v & 0x00001)
+		{
+			int n = v % 100;
+			Lock_Guard te_lo (lock_array[n]);
+			v = std::rand ();
+			n = v % 100;
+			Lock_Guard te_lt (lock_array[n]);
+			v = std::rand ();
+			n = v % 100;
+			Lock_Guard te_lth (lock_array[n]);
+			if ((thread_number--) > 0 && (v & 0x00001))
+			{
+				Thread t (sun);
+				v = std::rand ();
+				if (v & 0x00001)
+				{
+					t.join ();
+				}
+				else
+				{
+					t.detach ();
+				}
+			}
+			v = std::rand ();
+			while ((v & 0x00001))
+			{
+				v = std::rand ();
+				_WAIT_;
+			}
+			v = std::rand ();
+			if (Stacknumber <10 &&(v & 0x00001))
+			{
+				sun ();
+			}
+		}
+		else
+		{
+			v = std::rand ();
+			if ((thread_number--) > 0 && (v & 0x00001))
+			{
+				v = std::rand ();
+				while ((v & 0x00001))
+				{
+					v = std::rand ();
+					_WAIT_;
+				}
 
-		v = std::rand ();
-		if ((thread_number--)>0 && (v & 0x00001))
-		{
-			Thread t (sun);
-			v = std::rand ();
-			if (v & 0x00001)
-			{
-				t.join ();
-			}
-			else
-			{
-				t.detach ();
+				Thread t (sun);
+				v = std::rand ();
+				if (v & 0x00001)
+				{
+					t.join ();
+				}
+				else
+				{
+					t.detach ();
+				}
 			}
 		}
 	}
-	else
+	catch (const std::exception&err)
 	{
-		v = std::rand ();
-		if ((thread_number--)>0 && (v & 0x00001))
-		{
-			Thread t (sun);
-			v = std::rand ();
-			if (v & 0x00001)
-			{
-				t.join ();
-			}
-			else
-			{
-				t.detach ();
-			}
-		}
-	}
-	v = std::rand ();
-	while((v & 0x00001))
-	{
-		v = std::rand ();
-		_WAIT_;
+		std::cout << err.what () << std::endl;
 	}
 }
 
@@ -75,7 +101,7 @@ void lock_test()
 				var.join ();
 			}
 			t_te_l.clear ();
-			thread_number = 100;
+			thread_number = 30;
 			std::cout << "第" << 10000 - counter << "次完成" << std::endl;
 		}
 	}
