@@ -210,7 +210,7 @@ namespace swd
 		{
 
 		}
-		//Thread (Thread* _Other) = delete;
+		Thread (Thread* _Other) = delete;
 		~Thread ();
 		void join ();
 		Thread& operator=(Thread&& _Other) noexcept
@@ -219,7 +219,7 @@ namespace swd
 			return *this;
 		}
 		Thread& operator=(const Thread& _Other) = delete;
-		//Thread& operator=(Thread* _Other) = delete;
+		Thread& operator=(Thread* _Other) = delete;
 	};
 
 }
