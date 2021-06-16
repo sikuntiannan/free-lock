@@ -1,5 +1,3 @@
-# free-lock
-无死锁并发组件
 ## 原理：
   * 死锁有两种：线程间，线程内。
 
@@ -48,4 +46,52 @@
         ​																		例2
 
         这种情况1一定先于2执行完成，因为2请求A时导致CD释放，同时因为1持有A，所以2会阻塞，且1可以请求到CD。
+      
+      ## RW_Lock
+      
+      ​	读写锁，不多说。
+      
+      
 
+### IdentityNumber
+
+全局唯一编号产生，无锁，线程安全。
+
+### lock_base
+
+锁的基类
+
+### S_Lock
+
+互斥锁
+
+std::mutex不支持跨线程操作（一个线程加锁，一个线程解锁）
+
+### Lock_Memger
+
+线程上的所管理器
+
+### Lock_Guard
+
+栈上的锁管理，仿std::lock_guard;
+
+### Thread
+
+继承std::thread。主要是修改join的实现。
+
+
+
+# 用法
+
+Thread替换std::thread
+
+Lock_Guard 替换 std::lock_guard
+
+S_Lock 替换 std::mutex
+
+当然以上组件完全和c++兼容。
+
+仅限全套使用时解决死锁问题，否则只能解决部分死锁。
+
+SWD_LOCK_TEST ：是否遇到死锁（可能或者已经触发）时中断。
+_WAIT_TIME：睡眠多久。
