@@ -196,7 +196,7 @@ namespace swd
 	};
 
 	//改写标准库的线程，修改join的实现。
-	class Thread :public std::thread
+	class _EXPORTING Thread :public std::thread
 	{//基类子类一样大，所以不会内存泄漏
 	public:
 		Thread (const Thread&) = delete;
