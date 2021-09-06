@@ -78,10 +78,10 @@ namespace swd
 	{
 	public:
 		IdentityNumber ();
-		IdentityNumber (IdentityNumber&&);
+		IdentityNumber (IdentityNumber&&)noexcept;
 		virtual ~IdentityNumber ();
 		size_t GetNumber ();
-		void operator=(IdentityNumber&&);
+		void operator=(IdentityNumber&&)noexcept;
 		virtual bool operator==(const IdentityNumber&);
 		virtual bool operator<(const IdentityNumber&);
 		virtual bool operator>(const IdentityNumber&);
@@ -104,6 +104,7 @@ namespace swd
 	{
 	public:
 		lock_base () = default;
+		lock_base (lock_base&&) = default;
 		virtual ~lock_base () = default;
 		virtual void lock () = 0;
 		virtual void unlock () = 0;
@@ -124,8 +125,8 @@ namespace swd
 	public:
 		S_Lock ();
 		~S_Lock () = default;
-		S_Lock (S_Lock&&);
-		S_Lock& operator= (S_Lock&&);
+		S_Lock (S_Lock&&)noexcept;
+		S_Lock& operator= (S_Lock&&)noexcept;
 		void lock ();
 		bool try_lock ();
 		void unlock ();
@@ -205,7 +206,7 @@ namespace swd
 		{
 
 		}
-		Thread (Thread&& _Other)
+		Thread (Thread&& _Other) noexcept
 			:std::thread (std::forward<std::thread> (_Other))
 		{
 

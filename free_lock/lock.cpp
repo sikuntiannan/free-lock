@@ -157,12 +157,12 @@ namespace swd
 
 	}
 
-	S_Lock::S_Lock (S_Lock&&aim)
+	S_Lock::S_Lock (S_Lock&&aim)noexcept
 	{
 		m_V.exchange (aim.m_V.exchange (m_V));
 	}
 
-	S_Lock& S_Lock::operator= (S_Lock&&aim)
+	S_Lock& S_Lock::operator= (S_Lock&&aim)noexcept
 	{
 		m_V.exchange (aim.m_V.exchange (m_V));
 		return *this;
@@ -205,7 +205,7 @@ namespace swd
 		//不用归还，64位的数据不考虑能被用完。
 	}
 
-	IdentityNumber::IdentityNumber (IdentityNumber&&aim)
+	IdentityNumber::IdentityNumber (IdentityNumber&&aim)noexcept
 	{
 		std::swap (aim.m_number, m_number);
 	}
@@ -215,7 +215,7 @@ namespace swd
 		return m_number;
 	}
 
-	void IdentityNumber::operator=(IdentityNumber&&aim)
+	void IdentityNumber::operator=(IdentityNumber&&aim)noexcept
 	{
 		std::swap (aim.m_number, m_number);
 	}
