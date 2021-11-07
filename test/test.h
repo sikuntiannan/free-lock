@@ -19,13 +19,13 @@ void sun ()
 		if (v & 0x00001)
 		{
 			int n = v % 100;
-			Lock_Guard te_lo (lock_array[n]);
+			lock_guard te_lo (lock_array[n]);
 			v = std::rand ();
 			n = v % 100;
-			Lock_Guard te_lt (lock_array[n]);
+			lock_guard te_lt (lock_array[n]);
 			v = std::rand ();
 			n = v % 100;
-			Lock_Guard te_lth (lock_array[n]);
+			lock_guard te_lth (lock_array[n]);
 			if ((thread_number--) > 0 && (v & 0x00001))
 			{
 				thread t (sun);

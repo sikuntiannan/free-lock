@@ -47,11 +47,6 @@
 
         这种情况1一定先于2执行完成，因为2请求A时导致CD释放，同时因为1持有A，所以2会阻塞，且1可以请求到CD。
       
-      ## RW_Lock
-      
-      ​	读写锁，不多说。
-      
-      
 
 ### IdentityNumber
 
@@ -59,23 +54,23 @@
 
 ### lock_base
 
-锁的基类
+锁的基类，新建类型的锁必须继承这个类
 
-### S_Lock
+### mutex
 
 互斥锁
 
-std::mutex不支持跨线程操作（一个线程加锁，一个线程解锁）
+std::mutex不支持跨线程操作（一个线程加锁，一个线程解锁），所以做了这个锁
 
 ### Lock_Memger
 
-线程上的所管理器
+线程上的所、锁管理器
 
-### Lock_Guard
+### lock_guard
 
 栈上的锁管理，仿std::lock_guard;
 
-### Thread
+### thread
 
 继承std::thread。主要是修改join的实现。
 
@@ -83,15 +78,21 @@ std::mutex不支持跨线程操作（一个线程加锁，一个线程解锁）
 
 # 用法
 
-Thread替换std::thread
+swd::thread替换std::thread
 
-Lock_Guard 替换 std::lock_guard
+swd::lock_guard替换 std::lock_guard
 
-S_Lock 替换 std::mutex
+swd::mutex替换 std::mutex
 
 当然以上组件完全和c++兼容。
 
 仅限全套使用时解决死锁问题，否则只能解决部分死锁。
 
-SWD_LOCK_TEST ：是否遇到死锁（可能或者已经触发）时中断。
+SWD_LOCK_TEST ：是否遇到死锁（可能或者已经触发）时中断,不是所有情况的死锁都能检测到。
 _WAIT_TIME：睡眠多久。
+
+
+
+打开.snl文件编译就可以，没有依赖项。
+
+test项目中有例子代码。

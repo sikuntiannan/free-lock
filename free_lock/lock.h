@@ -104,11 +104,11 @@ namespace swd
 	};
 
 	//锁必须继承lock_base
-	class _EXPORTING Lock_Guard
+	class _EXPORTING lock_guard
 	{
 	public:
 		template<typename ...T>
-		Lock_Guard (lock_base &now, T&& ...args)
+		lock_guard (lock_base &now, T&& ...args)
 		{
 			initialise (std::forward<T> (args)...);
 			for (auto&var : m_lock_pool)
@@ -117,7 +117,7 @@ namespace swd
 			}
 		}
 
-		~Lock_Guard ()
+		~lock_guard ()
 		{
 			for (auto&var : m_lock_pool)
 			{
