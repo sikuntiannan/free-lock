@@ -1,195 +1,6 @@
 #include"Lock.h"
 namespace swd
 {
-	RW_Lock::RW_Lock ()
-		:m_ReadNumber (0), m_Write (false)
-	{
-	}
-
-	RW_Lock::~RW_Lock ()
-	{
-		{
-			//设置写状态，保证写结束。
-			bool te = false;
-			while (!m_Write.compare_exchange_weak (te, true))
-			{
-				te = false;
-				_WAIT_TIME (1, ms);
-			}
-		}
-		{
-			//保证读结束。
-			while (m_ReadNumber.load ())
-			{
-				_WAIT_TIME (1, ms);
-			}
-		}
-	}
-
-	/*
-	锁是抢占的，双方具有公平性，不会应为读连续导致写长时间挂起。
-	*/
-
-	void RW_Lock::Read_Lock ()
-	{
-		while (!m_Write.load ())//等待Write_Lock的解锁。
-		{
-			_WAIT_TIME (1, ms);
-		}
-		//有可能在这里（这句话的位置），完成了Write_Lock的调用，所以下面再次等待写结束。
-		++m_ReadNumber;//阻止Write_Lock返回
-		while (!m_Write.load ())//等待Write_Lock的解锁。
-		{
-			_WAIT_TIME (1, ms);
-		}
-	}
-
-	void RW_Lock::Write_Lock ()
-	{
-		bool te = false;
-		while (!m_Write.compare_exchange_weak (te, true))//等待Write_Lock的解锁。
-		{
-			_WAIT_TIME (1, ms);
-		}
-		while (m_ReadNumber.load ())//等待Read_Lock的解锁。
-		{
-			_WAIT_TIME (1, ms);
-		}
-	}
-
-	ErrorCode RW_Lock::Try_Read_Lock ()
-	{
-		if (!m_Write.load ())
-		{
-			return ErrorCode::FAIL;
-		}
-		++m_ReadNumber;
-		if (!m_Write.load ())
-		{
-			--m_ReadNumber;
-			return ErrorCode::FAIL;
-		}
-		return ErrorCode::SUCCESS;
-	}
-
-	ErrorCode RW_Lock::Try_Write_Lock ()
-	{
-		bool te = false;
-		if (!m_Write.compare_exchange_weak (te, true))
-		{
-			return ErrorCode::FAIL;
-		}
-		if (m_ReadNumber.load ())
-		{
-			m_Write.store (false);
-			return ErrorCode::FAIL;
-		}
-		return ErrorCode::SUCCESS;
-	}
-
-	void RW_Lock::Read_Unlock ()
-	{
-		--m_ReadNumber;
-	}
-
-	void RW_Lock::Write_Unlock ()
-	{
-		m_Write.store (false);
-	}
-
-	//R_Lock
-	R_Lock::R_Lock (RW_Lock& v)
-		:m_d (v)
-	{
-	}
-
-	R_Lock::~R_Lock ()
-	{
-	}
-
-	void R_Lock::lock ()
-	{
-		m_d.Read_Lock ();
-	}
-
-	void R_Lock::unlock ()
-	{
-		m_d.Read_Unlock ();
-	}
-
-	ErrorCode R_Lock::try_lock ()
-	{
-		return m_d.Try_Read_Lock ();
-	}
-
-	//W_Lock
-	W_Lock::W_Lock (RW_Lock&v)
-		:m_d (v)
-	{
-
-	}
-
-	W_Lock::~W_Lock ()
-	{
-
-	}
-
-	void W_Lock::lock ()
-	{
-		m_d.Write_Lock ();
-	}
-
-	void W_Lock::unlock ()
-	{
-		m_d.Write_Unlock ();
-	}
-
-	ErrorCode W_Lock::try_lock ()
-	{
-		return m_d.Try_Write_Lock ();
-	}
-
-	//S_Lock
-
-	S_Lock::S_Lock ()
-		:m_V (false)
-	{
-
-	}
-
-	S_Lock::S_Lock (S_Lock&&aim)noexcept
-	{
-		m_V.exchange (aim.m_V.exchange (m_V));
-	}
-
-	S_Lock& S_Lock::operator= (S_Lock&&aim)noexcept
-	{
-		m_V.exchange (aim.m_V.exchange (m_V));
-		return *this;
-	}
-
-	void S_Lock::lock ()
-	{
-		bool te = false;
-		while (!m_V.compare_exchange_weak (te, true))
-		{
-			te = false;
-			_WAIT_TIME (1, ms);
-		}
-	}
-
-	bool S_Lock::try_lock ()
-	{
-		bool te = false, result;
-		result = m_V.compare_exchange_weak (te, true);
-		return result;
-	}
-
-	void S_Lock::unlock ()
-	{
-		m_V.store (false);
-	}
-
 	//IdentityNumber
 
 	std::atomic<size_t> IdentityNumber::SM_NumberMaker;
@@ -234,6 +45,48 @@ namespace swd
 	{
 		return m_number > aim.m_number;
 	}
+
+	//S_Lock
+
+	S_Lock::S_Lock()
+		:m_V(false)
+	{
+
+	}
+
+	S_Lock::S_Lock(S_Lock&& aim)noexcept
+	{
+		m_V.exchange(aim.m_V.exchange(m_V));
+	}
+
+	S_Lock& S_Lock::operator= (S_Lock&& aim)noexcept
+	{
+		m_V.exchange(aim.m_V.exchange(m_V));
+		return *this;
+	}
+
+	void S_Lock::lock()
+	{
+		bool te = false;
+		while (!m_V.compare_exchange_weak(te, true))
+		{
+			te = false;
+			_WAIT_TIME(1, ms);
+		}
+	}
+
+	bool S_Lock::try_lock()
+	{
+		bool te = false, result;
+		result = m_V.compare_exchange_weak(te, true);
+		return result;
+	}
+
+	void S_Lock::unlock()
+	{
+		m_V.store(false);
+	}
+
 
 	//Lock_Memger
 
@@ -322,12 +175,12 @@ namespace swd
 
 	//Thread
 
-	Thread::~Thread ()
+	thread::~thread ()
 	{
 
 	}
 
-	void Thread::join ()
+	void thread::join ()
 	{
 		if (std::thread::joinable ())
 		{

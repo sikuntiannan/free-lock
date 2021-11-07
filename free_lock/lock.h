@@ -21,58 +21,6 @@
 
 namespace swd
 {
-	//拷贝，移动时不支持并发访问。
-	class R_Lock;
-	class W_Lock;
-	class _EXPORTING RW_Lock
-	{
-	public:
-		RW_Lock ();
-		~RW_Lock ();//会阻塞，直到这个锁的所有访问全部结束。
-	protected:
-		friend R_Lock;
-		friend W_Lock;
-		void Read_Lock ();//会阻塞
-		void Write_Lock ();//会阻塞
-		ErrorCode Try_Read_Lock ();//不阻塞
-		ErrorCode Try_Write_Lock ();//不阻塞
-		void Read_Unlock ();
-		void Write_Unlock ();
-	private:
-		/*
-			读写锁需要两个原子来做，解决读连续导致的写阻塞，两个可以有一定的随机性。
-			平均看不会引起阻塞，写的优先级更高，但也不能形成写连续。
-			保证写时读都结束，读时写都不在执行。
-		*/
-		std::atomic<uint32_t> m_ReadNumber;//读取
-		std::atomic<bool> m_Write;//写入
-	};
-
-	//包一次，为了能用栈变量保护
-	class _EXPORTING R_Lock
-	{
-	public:
-		R_Lock (RW_Lock&);
-		~R_Lock ();
-		void lock ();
-		void unlock ();
-		ErrorCode try_lock ();
-	private:
-		RW_Lock &m_d;
-	};
-
-	class _EXPORTING W_Lock
-	{
-	public:
-		W_Lock (RW_Lock&);
-		~W_Lock ();
-		void lock ();
-		void unlock ();
-		ErrorCode try_lock ();
-	private:
-		RW_Lock &m_d;
-	};
-
 	//序号
 	class IdentityNumber
 	{
@@ -196,31 +144,31 @@ namespace swd
 	};
 
 	//改写标准库的线程，修改join的实现。
-	class _EXPORTING Thread :public std::thread
+	class _EXPORTING thread :public std::thread
 	{//基类子类一样大，所以不会内存泄漏
 	public:
-		Thread (const Thread&) = delete;
+		thread (const thread&) = delete;
 		template<typename ...T>
-		Thread (T&& ... args)
+		thread (T&& ... args)
 			:std::thread (std::forward<T> (args)...)
 		{
 
 		}
-		Thread (Thread&& _Other) noexcept
+		thread (thread&& _Other) noexcept
 			:std::thread (std::forward<std::thread> (_Other))
 		{
 
 		}
-		Thread (Thread* _Other) = delete;
-		~Thread ();
+		thread (thread* _Other) = delete;
+		~thread ();
 		void join ();
-		Thread& operator=(Thread&& _Other) noexcept
+		thread& operator=(thread&& _Other) noexcept
 		{	// move from _Other
 			std::thread::operator=(std::forward<std::thread> (_Other));
 			return *this;
 		}
-		Thread& operator=(const Thread& _Other) = delete;
-		Thread& operator=(Thread* _Other) = delete;
+		thread& operator=(const thread& _Other) = delete;
+		thread& operator=(thread* _Other) = delete;
 	};
 
 }

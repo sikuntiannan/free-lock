@@ -28,7 +28,7 @@ void sun ()
 			Lock_Guard te_lth (lock_array[n]);
 			if ((thread_number--) > 0 && (v & 0x00001))
 			{
-				Thread t (sun);
+				thread t (sun);
 				v = std::rand ();
 				if (v & 0x00001)
 				{
@@ -63,7 +63,7 @@ void sun ()
 					_WAIT_;
 				}
 
-				Thread t (sun);
+				thread t (sun);
 				v = std::rand ();
 				if (v & 0x00001)
 				{
@@ -90,7 +90,7 @@ void lock_test()
 		int counter = 10000;
 		while (counter--)
 		{
-			std::vector<Thread> t_te_l;
+			std::vector<thread> t_te_l;
 			for (size_t i = 0; i < 4; i++)
 			{
 				t_te_l.emplace_back (sun);
