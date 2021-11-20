@@ -93,6 +93,6 @@ _WAIT_TIME：睡眠多久。
 
 
 
-打开.snl文件编译就可以，没有依赖项。
+使用cmake创建解决方案
 
-test项目中有例子代码。
+配置cmake参数 cmake_install_prefix = 需要安装的目录
