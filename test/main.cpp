@@ -1,4 +1,4 @@
-#include"test.h"
+﻿#include"test.h"
 int main ()
 {
 	lock_test ();

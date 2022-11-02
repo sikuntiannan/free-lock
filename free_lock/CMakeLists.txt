@@ -15,7 +15,7 @@ set(lib_src "lock.cpp")
 
 add_library(free_lock STATIC ${lib_src} )
 
-INSTALL (TARGETS free_lock  free_lock DESTINATION lib)
+INSTALL (TARGETS free_lock  free_lock DESTINATION bin)
 
 INSTALL (FILES lock.h DESTINATION include/free-lock/)
 INSTALL (FILES queue.h DESTINATION include/free-lock/)

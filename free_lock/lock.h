@@ -1,10 +1,10 @@
-#pragma once
-#include"Head.h"
-#include"ErrorDef.h"
+﻿#pragma once
+#include "Head.h"
+#include "ErrorDef.h"
 
 /*
 读写锁，由W_Lock和R_Lock支持栈管理。
-无死锁组件：接口：Lock_Guard 和 S_Lock。由编号和线程容器管理。
+无死锁组件：接口：Lock_Guard 和 mutex。由编号和线程容器管理。
 
 定义宏SWD_LOCK_TEST可以开启死锁检测，死锁不一定会触发，但可以检测。运行时检测。当然，如果性能敏感，可以开启检测做测试，修改死锁代码来获得性能，如无必要可以关闭检测。
 	原理：
@@ -25,18 +25,19 @@ namespace swd
 	class IdentityNumber
 	{
 	public:
-		IdentityNumber ();
-		IdentityNumber (IdentityNumber&&)noexcept;
-		virtual ~IdentityNumber ();
-		size_t GetNumber ();
-		void operator=(IdentityNumber&&)noexcept;
-		virtual bool operator==(const IdentityNumber&);
-		virtual bool operator<(const IdentityNumber&);
-		virtual bool operator>(const IdentityNumber&);
+		IdentityNumber();
+		IdentityNumber(IdentityNumber &&) noexcept;
+		virtual ~IdentityNumber();
+		size_t GetNumber() const;
+		void operator=(IdentityNumber &&) noexcept;
+		virtual bool operator==(const IdentityNumber &) const;
+		virtual bool operator<(const IdentityNumber &) const;
+		virtual bool operator>(const IdentityNumber &) const;
+
 	private:
-		IdentityNumber& operator=(const IdentityNumber&) = delete;
-		IdentityNumber (const IdentityNumber&) = delete;
-		size_t m_number;//因为唯一修改就是构造时，所以不用原子
+		IdentityNumber &operator=(const IdentityNumber &) = delete;
+		IdentityNumber(const IdentityNumber &) = delete;
+		size_t m_number; //因为唯一修改就是构造时，所以不用原子
 		static std::atomic<size_t> SM_NumberMaker;
 	};
 
@@ -48,127 +49,142 @@ namespace swd
 	*/
 	//可以通过基类来实现各种锁。
 
-	class lock_base :public IdentityNumber
+	class lock_base : public IdentityNumber
 	{
 	public:
-		lock_base () = default;
-		lock_base (lock_base&&) = default;
-		virtual ~lock_base () = default;
-		virtual void lock () = 0;
-		virtual void unlock () = 0;
-		virtual bool try_lock () = 0;
-	private:
+		lock_base() = default;
+		lock_base(lock_base&&) = default;
+		virtual ~lock_base() = default;
+		virtual void lock() = 0;
+		virtual void unlock() = 0;
+		virtual bool try_lock() = 0;
 
+	private:
+	};
+
+	class LockComPare
+	{
+	private:
+		/* data */
+	public:
+		LockComPare(/* args */) = default;
+		~LockComPare() = default;
+		bool operator()(lock_base *const &left, lock_base *const &right) const
+		{
+			return left->GetNumber() > right->GetNumber();
+		};
 	};
 
 	/*c++自己的不支持跨线程操作。
 	一个线程加锁一个线程解锁会报错，这个不会。
-	并且支持c++的锁管理对象，例如：std::lock_guard<S_Lock>lock (m_FileHead_lock);
+	并且支持c++的锁管理对象，例如：std::lock_guard<mutex>lock (m_FileHead_lock);
 注意：移动语义需要有其他锁来保护才能安全使用，类本身不提供保护。
 	c++20标准，可以添加等待和唤起操作的函数。目前仅是对标c++11标准。
 */
-//互斥锁
-	class _EXPORTING S_Lock :public lock_base
+	//互斥锁
+	class _EXPORTING mutex : public lock_base
 	{
 	public:
-		S_Lock ();
-		~S_Lock () = default;
-		S_Lock (S_Lock&&)noexcept;
-		S_Lock& operator= (S_Lock&&)noexcept;
-		void lock ();
-		bool try_lock ();
-		void unlock ();
+		mutex();
+		~mutex() = default;
+		mutex(mutex &&) noexcept;
+		mutex &operator=(mutex &&) noexcept;
+		void lock();
+		bool try_lock();
+		void unlock();
+
 	private:
-		S_Lock (S_Lock&) = delete;
-		S_Lock& operator= (S_Lock&) = delete;
+		mutex(mutex &) = delete;
+		mutex &operator=(mutex &) = delete;
 		std::atomic<bool> m_V;
+#ifdef _DEBUG
+		std::atomic<std::thread::id> m_NowHoldThread;
+#endif
+
 	};
 
-
 	class Lock_Memger
-	{//不极端情况，开销不大。十几个锁排序拷贝重加锁等等，不会太费事。
+	{ //不极端情况，开销不大。十几个锁排序拷贝重加锁等等，不会太费事。
 	public:
-		Lock_Memger () = default;
-		~Lock_Memger ();
-		void Push (lock_base*);
-		void Pop (lock_base*);
+		Lock_Memger() = default;
+		~Lock_Memger();
+		void Push(lock_base *);
+		void Pop(lock_base *);
 		//暂停线程上所有的锁。期望暂停恢复成对出现，或者别用。
-		void Pause ();
+		void Pause();
 		//恢复线程上所有的锁。
-		void Regain ();
+		void Regain();
 		static thread_local Lock_Memger TM_LM;
+
 	private:
-		Lock_Memger (Lock_Memger&&) = delete;
-		Lock_Memger (const Lock_Memger&) = delete;
-		std::vector<lock_base*> m_lock_pool;
+		Lock_Memger(Lock_Memger &&) = delete;
+		Lock_Memger(const Lock_Memger &) = delete;
+		std::set<lock_base *, LockComPare> m_lock_pool;
 	};
 
 	//锁必须继承lock_base
 	class _EXPORTING lock_guard
 	{
 	public:
-		template<typename ...T>
-		lock_guard (lock_base &now, T&& ...args)
+		template <typename... T>
+		lock_guard(lock_base &now, T &&...args) //同一个锁被加进来并不会当成两个锁对待
 		{
-			initialise (std::forward<T> (args)...);
-			for (auto&var : m_lock_pool)
+			initialise(std::forward<T>(args)...);
+			for (auto &var : m_lock_pool)
 			{
-				Lock_Memger::TM_LM.Push (var);
+				Lock_Memger::TM_LM.Push(var);
 			}
 		}
 
-		~lock_guard ()
+		~lock_guard()
 		{
-			for (auto&var : m_lock_pool)
+			for (auto &var : m_lock_pool)
 			{
-				Lock_Memger::TM_LM.Pop (var);
+				Lock_Memger::TM_LM.Pop(var);
 			}
 		}
 
 	private:
-		template<typename ...T>
-		void initialise (lock_base &now, T&& ...args)
+		template <typename... T>
+		void initialise(lock_base &now, T &&...args)
 		{
-			m_lock_pool.push_back (&now);
-			initialise (std::forward<T> (args)...);
+			m_lock_pool.insert(&now);
+			initialise(std::forward<T>(args)...);
 		}
-		void initialise (lock_base &now)
+		void initialise(lock_base &now)
 		{
-			m_lock_pool.push_back (&now);
+			m_lock_pool.insert(&now);
 		}
-		void initialise ()
+		void initialise()
 		{
-
 		}
-		std::vector<lock_base*> m_lock_pool;
+		std::set<lock_base *, LockComPare> m_lock_pool;
 	};
 
 	//改写标准库的线程，修改join的实现。
-	class _EXPORTING thread :public std::thread
-	{//基类子类一样大，所以不会内存泄漏
+	class _EXPORTING thread : public std::thread
+	{ //基类子类一样大，所以不会内存泄漏
 	public:
-		thread (const thread&) = delete;
-		template<typename ...T>
-		thread (T&& ... args)
-			:std::thread (std::forward<T> (args)...)
+		thread(const thread &) = delete;
+		template <typename... T>
+		thread(T &&...args)
+			: std::thread(std::forward<T>(args)...)
 		{
-
 		}
-		thread (thread&& _Other) noexcept
-			:std::thread (std::forward<std::thread> (_Other))
+		thread(thread &&_Other) noexcept
+			: std::thread(std::forward<std::thread>(_Other))
 		{
-
 		}
-		thread (thread* _Other) = delete;
-		~thread ();
-		void join ();
-		thread& operator=(thread&& _Other) noexcept
-		{	// move from _Other
-			std::thread::operator=(std::forward<std::thread> (_Other));
+		thread(thread *_Other) = delete;
+		~thread();
+		void join();
+		thread &operator=(thread &&_Other) noexcept
+		{ // move from _Other
+			std::thread::operator=(std::forward<std::thread>(_Other));
 			return *this;
 		}
-		thread& operator=(const thread& _Other) = delete;
-		thread& operator=(thread* _Other) = delete;
+		thread &operator=(const thread &_Other) = delete;
+		thread &operator=(thread *_Other) = delete;
 	};
 
 }
